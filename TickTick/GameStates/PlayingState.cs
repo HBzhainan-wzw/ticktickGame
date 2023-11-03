@@ -75,9 +75,12 @@ class PlayingState : GameState, IPlayingState
 
     public override void Draw(GameTime gameTime, SpriteBatch spriteBatch)
     {
+
+
         base.Draw(gameTime, spriteBatch);
         if (level != null)
             level.Draw(gameTime, spriteBatch);
+
     }
 
     public void LoadLevel(int levelIndex)

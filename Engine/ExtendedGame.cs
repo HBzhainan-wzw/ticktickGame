@@ -118,6 +118,12 @@ namespace Engine
         {
             GraphicsDevice.Clear(Color.Black);
 
+            // Calculate the translation matrix for the camera
+            // Matrix cameraTransform = Matrix.CreateTranslation(-Camera.position.X, -Camera.position.Y, 0);
+
+            // Start drawing sprites, applying the camera transform
+            // spriteBatch.Begin(SpriteSortMode.FrontToBack, null, null, null, null, null, cameraTransform);
+
             // start drawing sprites, applying the scaling matrix
             spriteBatch.Begin(SpriteSortMode.FrontToBack, null, null, null, null, null, spriteScale);
 

@@ -29,9 +29,10 @@ class TickTick : ExtendedGameWithLevels
         base.LoadContent();
 
         // set a custom world and window size
-        worldSize = new Point(1440, 825);
-        // worldSize = new Point(2880, 1650);
+        worldSize = new Point(2048, 2048);
+        // worldSize = new Point(1024, 768);
         windowSize = new Point(1024, 586);
+        // windowSize = new Point(1024, 586);
         Camera.worldSize = worldSize;
         
         // to let these settings take effect, we need to set the FullScreen property again
