@@ -5,7 +5,7 @@ class Cloud : SpriteGameObject
 {
     Level level;
 
-    public Cloud(Level level) : base(null, TickTick.Depth_Background)
+    public Cloud(Level level) : base(null, TickTick.Depth_Background, UI: true)
     {
         this.level = level;
         Reset();

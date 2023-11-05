@@ -9,6 +9,7 @@ class PlayingState : GameState, IPlayingState
     Level level;
     Button quitButton;
     SpriteGameObject completedOverlay, gameOverOverlay;
+    // Reference to the bullet
 
     public PlayingState()
     {
@@ -24,7 +25,7 @@ class PlayingState : GameState, IPlayingState
 
     SpriteGameObject AddOverlay(string spriteName)
     {
-        SpriteGameObject result = new UISpriteGameObject(spriteName, 1);
+        SpriteGameObject result = new SpriteGameObject(spriteName, 1, UI: true);
         result.SetOriginToCenter();
         result.LocalPosition = new Vector2(720, 412);
         gameObjects.AddChild(result);
@@ -57,7 +58,10 @@ class PlayingState : GameState, IPlayingState
                 level.HandleInput(inputHelper);
 
                 if (quitButton.Pressed)
+                {
                     ExtendedGame.GameStateManager.SwitchTo(ExtendedGameWithLevels.StateName_LevelSelect);
+                    Camera.rectangle = new Rectangle(0, 0, TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+                }
             }
         }
     }
@@ -75,12 +79,9 @@ class PlayingState : GameState, IPlayingState
 
     public override void Draw(GameTime gameTime, SpriteBatch spriteBatch)
     {
-
-
         base.Draw(gameTime, spriteBatch);
         if (level != null)
             level.Draw(gameTime, spriteBatch);
-
     }
 
     public void LoadLevel(int levelIndex)

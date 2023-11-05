@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Diagnostics;
+
 namespace Engine
 {
     /// <summary>
@@ -20,11 +20,7 @@ namespace Engine
         /// </summary>
         public static int NumberOfLevels
         {
-            
-            get {
-                
-                return progress.Count;
-            }
+            get { return progress.Count; }
         }
 
         /// <summary>

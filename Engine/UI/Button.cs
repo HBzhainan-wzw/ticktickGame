@@ -3,7 +3,7 @@
     /// <summary>
     /// A class that can represent a UI button in the game.
     /// </summary>
-    public class Button : UISpriteGameObject
+    public class Button : SpriteGameObject
     {
         /// <summary>
         /// Whether this button has been pressed (clicked) in the current frame.
@@ -15,7 +15,7 @@
         /// </summary>
         /// <param name="assetName">The name of the sprite to use.</param>
         /// <param name="depth">The depth at which the button should be drawn.</param>
-        public Button(string assetName, float depth) : base(assetName, depth)
+        public Button(string assetName, float depth) : base(assetName, depth, UI: true)
         {
             Pressed = false;
         }

@@ -11,6 +11,7 @@ class TickTick : ExtendedGameWithLevels
     public const float Depth_LevelObjects = 0.6f; // for all game objects except the player
     public const float Depth_LevelPlayer = 0.7f; // for the player
 
+    public static Point WorldSizeForCamera { get; private set; }
 
     [STAThread]
     static void Main()
@@ -29,11 +30,8 @@ class TickTick : ExtendedGameWithLevels
         base.LoadContent();
 
         // set a custom world and window size
-        worldSize = new Point(2048, 2048);
-        // worldSize = new Point(1024, 768);
+        worldSize = new Point(1440, 825);
         windowSize = new Point(1024, 586);
-        // windowSize = new Point(1024, 586);
-        Camera.worldSize = worldSize;
         
         // to let these settings take effect, we need to set the FullScreen property again
         FullScreen = false;
@@ -52,6 +50,10 @@ class TickTick : ExtendedGameWithLevels
 
         // play background music
         AssetManager.PlaySong("Sounds/snd_music", true);
+
+        Camera.rectangle = new Rectangle(0, 0, worldSize.X, worldSize.Y);
+
+        WorldSizeForCamera = worldSize;
     }
     
 }

@@ -44,7 +44,7 @@ namespace Engine
         /// </summary>
         public static GameStateManager GameStateManager { get; private set; }
 
-        public static string ContentRootDirectory => "Content";
+        public static string ContentRootDirectory { get { return "Content"; } }
 
         /// <summary>
         /// Creates a new ExtendedGame object.
@@ -104,7 +104,7 @@ namespace Engine
                 Exit();
 
             // toggle full-screen mode when the player presses F5
-            if (inputHelper.KeyPressed(Keys.F11))
+            if (inputHelper.KeyPressed(Keys.F5))
                 FullScreen = !FullScreen;
 
             GameStateManager.HandleInput(inputHelper);
@@ -117,12 +117,6 @@ namespace Engine
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.Black);
-
-            // Calculate the translation matrix for the camera
-            // Matrix cameraTransform = Matrix.CreateTranslation(-Camera.position.X, -Camera.position.Y, 0);
-
-            // Start drawing sprites, applying the camera transform
-            // spriteBatch.Begin(SpriteSortMode.FrontToBack, null, null, null, null, null, cameraTransform);
 
             // start drawing sprites, applying the scaling matrix
             spriteBatch.Begin(SpriteSortMode.FrontToBack, null, null, null, null, null, spriteScale);

@@ -1,7 +1,10 @@
 using Engine;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+//using MonoTube.Sprites;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 class Player : AnimatedGameObject
@@ -13,43 +16,34 @@ class Player : AnimatedGameObject
     
     const float iceFriction = 1; // Friction factor that determines how slippery the ice is; closer to 0 means more slippery.
     const float normalFriction = 20; // Friction factor that determines how slippery a normal surface is.
-    const float airFriction = 10; // Friction factor that determines how much (horizontal) air resistance there is.
-
-    private const double coyoteTime = 150; // Milliseconds of coyote time
-    private const double jumpBufferTime = 120; // Milliseconds of jump buffer
+    const float airFriction = 5; // Friction factor that determines how much (horizontal) air resistance there is.
 
     bool facingLeft; // Whether or not the character is currently looking to the left.
 
-    private bool isJumping;
     bool isGrounded; // Whether or not the character is currently standing on something.
     bool standingOnIceTile, standingOnHotTile; // Whether or not the character is standing on an ice tile or a hot tile.
     float desiredHorizontalSpeed; // The horizontal speed at which the character would like to move.
-    private double timeSinceLastGrounded = 0;
-    private bool canJump => !isJumping && timeSinceLastGrounded < coyoteTime && IsAlive;
-    private double timeSinceLastAirborneJumpPress = 100000; // any large enough number
 
     Level level;
+    public Bullet bullet;
     Vector2 startPosition;
     
     bool isCelebrating; // Whether or not the player is celebrating a level victory.
     bool isExploding;
 
-    public double GetjumpBufferTime() {return jumpBufferTime;}
 
-    public double GettimeSinceLastAirborneJumpPress() { return timeSinceLastAirborneJumpPress; }
-
-
+    public float walkingSpeedAdjustment { get; set; } // adjustment to walking speed for power up/down
     public bool IsAlive { get; private set; }
 
     public bool CanCollideWithObjects { get { return IsAlive && !isCelebrating; } }
 
     public bool IsMoving { get { return velocity != Vector2.Zero; } }
 
-    public Player(Level level, Vector2 startPosition) : base(TickTick.Depth_LevelPlayer)
+    public Player(Level level, Vector2 startPosition, Bullet bullet) : base(TickTick.Depth_LevelPlayer)
     {
         this.level = level;
         this.startPosition = startPosition;
-
+        this.bullet = bullet;
         // load all animations
         LoadAnimation("Sprites/LevelObjects/Player/spr_idle", "idle", true, 0.1f);
         LoadAnimation("Sprites/LevelObjects/Player/spr_run@13", "run", true, 0.04f);
@@ -76,6 +70,7 @@ class Player : AnimatedGameObject
         standingOnIceTile = standingOnHotTile = false;
 
         IsAlive = true;
+        walkingSpeedAdjustment = 0;
         isExploding = false;
         isCelebrating = false;
     }
@@ -88,19 +83,15 @@ class Player : AnimatedGameObject
         // arrow keys: move left or right
         if (inputHelper.KeyDown(Keys.Left))
         {
-            if (velocity.X > 0)
-                timeSinceLastGrounded = coyoteTime; // resets the timer
             facingLeft = true;
-            desiredHorizontalSpeed = -walkingSpeed;
+            desiredHorizontalSpeed = -(walkingSpeed + walkingSpeedAdjustment);
             if (isGrounded)
                 PlayAnimation("run");
         }
         else if (inputHelper.KeyDown(Keys.Right))
         {
-            if (velocity.X < 0)
-                timeSinceLastGrounded = coyoteTime; // resets the timer
             facingLeft = false;
-            desiredHorizontalSpeed = walkingSpeed;
+            desiredHorizontalSpeed = walkingSpeed + walkingSpeedAdjustment;
             if (isGrounded)
                 PlayAnimation("run");
         }
@@ -108,23 +99,21 @@ class Player : AnimatedGameObject
         // no arrow keys: don't move
         else
         {
-            timeSinceLastGrounded = coyoteTime;
             desiredHorizontalSpeed = 0;
             if (isGrounded)
                 PlayAnimation("idle");
         }
 
         // spacebar: jump
-        if (inputHelper.KeyPressed(Keys.Space))
-        {
-            if (canJump)
-                Jump();
-            else
-                timeSinceLastAirborneJumpPress = 0;
-        }
+        if (isGrounded && inputHelper.KeyPressed(Keys.Space))
+            Jump();
+
+        // press j: shoot
+        if (isGrounded && inputHelper.KeyPressed(Keys.J))
+            Shoot();
 
         // falling?
-        if (!isGrounded && !canJump)
+        if (!isGrounded)
             PlayAnimation("jump", false, 8);
 
         // set the origin to the character's feet
@@ -134,14 +123,13 @@ class Player : AnimatedGameObject
         sprite.Mirror = facingLeft;
     }
 
-    public void Jump(float speed = jumpSpeed)
+    public void Jump(float speed = jumpSpeed, bool isMuted= false)
     {
-        isJumping = true;
         velocity.Y = -speed;
         // play the jump animation; always make sure that the animation restarts
         PlayAnimation("jump", true);
         // play a sound
-        ExtendedGame.AssetManager.PlaySoundEffect("Sounds/snd_player_jump");
+        if (!isMuted) ExtendedGame.AssetManager.PlaySoundEffect("Sounds/snd_player_jump");
     }
 
     /// <summary>
@@ -169,9 +157,7 @@ class Player : AnimatedGameObject
         if (!isExploding)
             ApplyGravity(gameTime);
 
-        Camera.Update(localPosition);
         base.Update(gameTime);
-
         if (IsAlive)
         {
             // check for collisions with tiles
@@ -184,19 +170,49 @@ class Player : AnimatedGameObject
                 level.Timer.Multiplier = 2;
             else
                 level.Timer.Multiplier = 1;
-            
-            // coyote time
-            if (isGrounded)
-                timeSinceLastGrounded = 0;
-            else
-                timeSinceLastGrounded += gameTime.ElapsedGameTime.TotalMilliseconds;
-            
-            // jump buffer
-            timeSinceLastAirborneJumpPress += gameTime.ElapsedGameTime.TotalMilliseconds;
-            if (timeSinceLastAirborneJumpPress < jumpBufferTime && isGrounded)
-                Jump();
+
+            if (GlobalPosition.Y > (Level.TileHeight * level.GridRows) - (TickTick.WorldSizeForCamera.Y / 2) && 
+                GlobalPosition.X + TickTick.WorldSizeForCamera.X / 2 > level.stopSignForCamera.X)
+                // camera doesnt go out of bound right side and stays static until a certain y level is crossed
+            {
+                Camera.rectangle = new Rectangle(Camera.rectangle.X,
+                                                 Camera.rectangle.Y,
+                                                 TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+            }
+            else if (GlobalPosition.Y < (Level.TileHeight * level.GridRows) - (TickTick.WorldSizeForCamera.Y / 2) && 
+                     GlobalPosition.X + TickTick.WorldSizeForCamera.X / 2 > level.stopSignForCamera.X)
+                     // camera camera can go up and down right side, if certain y level is reached
+            {
+                Camera.rectangle = new Rectangle(Camera.rectangle.X,
+                                                 (int)GlobalPosition.Y - TickTick.WorldSizeForCamera.Y / 2,
+                                                 TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+            }
+            else if (GlobalPosition.X > TickTick.WorldSizeForCamera.X / 2 && 
+                     GlobalPosition.Y > (Level.TileHeight * level.GridRows) - (TickTick.WorldSizeForCamera.Y / 2))
+                     // camera only able to go right and left
+            {
+                Camera.rectangle = new Rectangle((int)GlobalPosition.X - TickTick.WorldSizeForCamera.X / 2,
+                                                 Level.TileHeight * level.GridRows - 825,
+                                                 TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+            }
+            else if (GlobalPosition.Y < (Level.TileHeight * level.GridRows) - (TickTick.WorldSizeForCamera.Y / 2) && 
+                     GlobalPosition.X > TickTick.WorldSizeForCamera.X / 2)
+                     // camera can do anything
+            {
+                Camera.rectangle = new Rectangle((int)GlobalPosition.X - TickTick.WorldSizeForCamera.X / 2,
+                                                 (int)GlobalPosition.Y - TickTick.WorldSizeForCamera.Y / 2,
+                                                 TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+            }
+            else if (GlobalPosition.Y < (Level.TileHeight * level.GridRows) - (TickTick.WorldSizeForCamera.Y / 2))
+                     // camera is not able to go out of bound of the left side, can go up and down.
+            {
+                Camera.rectangle = new Rectangle(0,
+                                                 (int)GlobalPosition.Y - TickTick.WorldSizeForCamera.Y / 2,
+                                                 TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+            }
         }
-            
+
+
     }
 
     void ApplyFriction(GameTime gameTime)
@@ -221,8 +237,6 @@ class Player : AnimatedGameObject
 
     void ApplyGravity(GameTime gameTime)
     {
-        if (canJump)
-            return;
         velocity.Y += gravity * (float)gameTime.ElapsedGameTime.TotalSeconds;
         if (velocity.Y > maxFallSpeed)
             velocity.Y = maxFallSpeed;
@@ -280,7 +294,6 @@ class Player : AnimatedGameObject
                     if (velocity.Y >= 0 && bbox.Center.Y < tileBounds.Top && overlap.Width > 6) // floor
                     {
                         isGrounded = true;
-                        isJumping = false;
                         velocity.Y = 0;
                         localPosition.Y = tileBounds.Top;
 
@@ -300,8 +313,6 @@ class Player : AnimatedGameObject
             }
         }
     }
-    
-    // Handles physics enhancements like coyote time and jump buffering
 
     Rectangle BoundingBoxForCollisions
     {
@@ -337,6 +348,11 @@ class Player : AnimatedGameObject
         ExtendedGame.AssetManager.PlaySoundEffect("Sounds/snd_player_explode");
     }
 
+    public void Shoot() {
+        // Debug.WriteLine("Shoot!");
+        this.bullet.Activate(level.Player.facingLeft);
+        
+    }
     /// <summary>
     /// Lets this Player object start celebrating due to completing a level.
     /// The Player will show an animation, and it will stop responding to keyboard input.
@@ -350,4 +366,5 @@ class Player : AnimatedGameObject
         // stop moving
         velocity = Vector2.Zero;
     }
+
 }

@@ -25,25 +25,25 @@ partial class Level : GameObjectList
 
         // load the background
         GameObjectList backgrounds = new GameObjectList();
-        SpriteGameObject backgroundSky = new SpriteGameObject("Sprites/Backgrounds/spr_sky", TickTick.Depth_Background);
+        SpriteGameObject backgroundSky = new SpriteGameObject("Sprites/Backgrounds/spr_sky", TickTick.Depth_Background, UI: true);
         backgroundSky.LocalPosition = new Vector2(0, 825 - backgroundSky.Height);
         backgrounds.AddChild(backgroundSky);
 
         AddChild(backgrounds);
 
-        // load the rest of the level
-        LoadLevelFromFile(filename);
-
         // add the timer
         timer = new BombTimer();
         AddChild(timer);
+
+        // load the rest of the level
+        LoadLevelFromFile(filename);
 
         // add mountains in the background
         for (int i = 0; i < 4; i++)
         {
             SpriteGameObject mountain = new SpriteGameObject(
                 "Sprites/Backgrounds/spr_mountain_" + (ExtendedGame.Random.Next(2) + 1),
-                TickTick.Depth_Background + 0.01f * (float)ExtendedGame.Random.NextDouble());
+                TickTick.Depth_Background + 0.01f * (float)ExtendedGame.Random.NextDouble(), UI: true);
 
             mountain.LocalPosition = new Vector2(mountain.Width * (i-1) * 0.4f, 
                 BoundingBox.Height - mountain.Height);
@@ -108,7 +108,7 @@ partial class Level : GameObjectList
         base.Update(gameTime);
 
         // check if we've finished the level
-        if (!completionDetected && AllDropsCollected && Player.HasPixelPreciseCollision(goal) && Player.IsAlive)
+        if (!completionDetected && AllDropsCollected && Player.HasPixelPreciseCollision(goal))
         {
             completionDetected = true;
             ExtendedGameWithLevels.GetPlayingState().LevelCompleted(LevelIndex);
@@ -143,6 +143,8 @@ partial class Level : GameObjectList
     {
         base.Reset();
         completionDetected = false;
+        // resets camera
+        Camera.rectangle = new Rectangle(0, Level.TileHeight * GridRows - 825, TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
     }
 }
 

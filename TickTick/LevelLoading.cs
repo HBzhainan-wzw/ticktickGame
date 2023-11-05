@@ -1,10 +1,16 @@
 ﻿using Engine;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
 partial class Level : GameObjectList
 {
+
+    public Bullet bullet;
+    public Vector2 stopSignForCamera { get; private set; } // where the camera should stop on the rightside
+    public int GridRows { get; private set; } // how long the lvl is
     void LoadLevelFromFile(string filename)
     {
         // open the file
@@ -12,6 +18,8 @@ partial class Level : GameObjectList
 
         // read the description
         string description = reader.ReadLine();
+
+        double timeLeft = int.Parse(reader.ReadLine());
 
         // read the rows of the grid; keep track of the longest row
         int gridWidth = 0;
@@ -35,17 +43,20 @@ partial class Level : GameObjectList
 
         // add game objects to show that general level info
         AddLevelInfoObjects(description);
+
+        timer.timeLeftCopy = timeLeft;
+        timer.timeLeft = timeLeft;
     }
 
     void AddLevelInfoObjects(string description)
     {
-        // - hint background box
-        SpriteGameObject frame = new UISpriteGameObject("Sprites/UI/spr_frame_hint", TickTick.Depth_UIBackground);
+        // - background box
+        SpriteGameObject frame = new SpriteGameObject("Sprites/UI/spr_frame_hint", TickTick.Depth_UIBackground, UI: true);
         frame.SetOriginToCenter();
         frame.LocalPosition = new Vector2(720, 50);
         AddChild(frame);
 
-        // - hint text
+        // - text
         TextGameObject hintText = new TextGameObject("Fonts/HintFont", TickTick.Depth_UIForeground, Color.Black, TextGameObject.Alignment.Left);
         hintText.Text = description;
         hintText.LocalPosition = new Vector2(510, 40);
@@ -78,6 +89,19 @@ partial class Level : GameObjectList
                 AddTile(x, y, symbol);
             }
         }
+
+        // if no s char in file
+        if (stopSignForCamera == Vector2.Zero)
+            stopSignForCamera = new Vector2(TickTick.WorldSizeForCamera.X, 0);
+
+        // if either the lvl is one screen or more screen, change the camera
+        if (TileHeight * gridRows.Count / 825 <= 1)
+            Camera.rectangle = new Rectangle(0, 0, TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+        else
+            Camera.rectangle = new Rectangle(0, TileHeight * gridRows.Count - 825, TickTick.WorldSizeForCamera.X, TickTick.WorldSizeForCamera.Y);
+        
+        // gives GridRows the value of gridRows.count
+        GridRows = gridRows.Count;
     }
 
     void AddTile(int x, int y, char symbol)
@@ -92,7 +116,10 @@ partial class Level : GameObjectList
 
         // load the dynamic part of the tile
         if (symbol == '1')
+        {
+            LoadBullet(x, y);
             LoadCharacter(x, y);
+        }
         else if (symbol == 'X')
             LoadGoal(x, y);
         else if (symbol == 'W')
@@ -105,6 +132,10 @@ partial class Level : GameObjectList
             LoadSparkyEnemy(x, y);
         else if (symbol == 'A' || symbol == 'B' || symbol == 'C')
             LoadFlameEnemy(x, y, symbol);
+        else if (symbol == '?')
+            LoadMushroom(x, y);
+        else if (symbol == 's') // stop sign in txt file
+            stopSignForCamera = GetCellPosition(x, y);
     }
 
     Tile CharToStaticTile(char symbol)
@@ -128,10 +159,18 @@ partial class Level : GameObjectList
         }
     }
 
+    // TODO loadGun
+    void LoadBullet(int x, int y)
+    {
+        System.Diagnostics.Debug.WriteLine("loadBullet");
+        bullet = new Bullet(this, GetCellPosition(x, y), x != 0);
+        AddChild(bullet);
+    }
+
     void LoadCharacter(int x, int y)
     {
         // create the bomb character
-        Player = new Player(this, GetCellBottomCenter(x, y));
+        Player = new Player(this, GetCellBottomCenter(x, y), bullet);
         AddChild(Player);
     }
 
@@ -190,6 +229,14 @@ partial class Level : GameObjectList
         AddChild(enemy);
     }
 
+    void LoadMushroom(int x, int y)
+    {
+        Vector2 pos = GetCellPosition(x, y) + new Vector2(TileWidth / 2, TileHeight / 2);
+
+        Mushroom mushroom;
+        mushroom = new Mushroom(this, pos);
+        AddChild(mushroom);
+    }
     Vector2 GetCellBottomCenter(int x, int y)
     {
         return GetCellPosition(x, y + 1) + new Vector2(TileWidth / 2, 0);

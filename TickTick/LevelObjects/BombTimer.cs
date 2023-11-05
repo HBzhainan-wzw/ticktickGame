@@ -4,21 +4,22 @@ using System;
 
 class BombTimer : GameObjectList
 {
-    double timeLeft;
+    public double timeLeft { get; set; }
+
+    public double timeLeftCopy { get; set; }
 
     public bool Running { get; set; }
     public float Multiplier { get; set; }
 
     TextGameObject label;
 
-    public bool HasPassed { get { return timeLeft <= 0; } }
+    public bool HasPassed { get { return timeLeft <= 0; }}
 
     public BombTimer()
     {
         localPosition = new Vector2(20, 20);
-        
         // add a background image
-        SpriteGameObject background = new UISpriteGameObject("Sprites/UI/spr_timer", TickTick.Depth_UIBackground);
+        SpriteGameObject background = new SpriteGameObject("Sprites/UI/spr_timer", TickTick.Depth_UIBackground, UI: true);
         AddChild(background);
 
         // add a text
@@ -62,7 +63,7 @@ class BombTimer : GameObjectList
     public override void Reset()
     {
         base.Reset();
-        timeLeft = 30;
+        timeLeft = timeLeftCopy;
         Running = true;
         Multiplier = 1;
     }

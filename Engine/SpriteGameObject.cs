@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Engine.UI;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Engine
@@ -13,6 +14,8 @@ namespace Engine
         /// </summary>
         protected SpriteSheet sprite;
 
+        protected bool UI; // if its an UI element
+
         /// <summary>
         /// The origin ('offset') to use when drawing the sprite on the screen.
         /// </summary>
@@ -23,8 +26,8 @@ namespace Engine
         /// </summary>
         public int SheetIndex
         {
-            get => sprite.SheetIndex;
-            set => sprite.SheetIndex = value;
+            get { return sprite.SheetIndex; }
+            set { sprite.SheetIndex = value; }
         }
 
         /// <summary>
@@ -39,9 +42,10 @@ namespace Engine
         /// <param name="spriteName">The name of the sprite to load.</param>
         /// <param name="depth">The depth at which the object should be drawn.</param>
         /// <param name="sheetIndex">The sheet index of the sprite to use initially.</param>
-        public SpriteGameObject(string spriteName, float depth, int sheetIndex = 0)
+        public SpriteGameObject(string spriteName, float depth, int sheetIndex = 0, bool UI = false)
         {
             this.depth = depth;
+            this.UI = UI;
 
             if (spriteName != null)
                 sprite = new SpriteSheet(spriteName, depth, sheetIndex);
@@ -51,7 +55,6 @@ namespace Engine
         /// <summary>
         /// Draws this SpriteGameObject on the screen, using its global position and origin. 
         /// Note that the object will only get drawn if it's actually marked as visible.
-        /// Is affected by camera.
         /// </summary>
         /// <param name="gameTime">An object containing information about the time that has passed in the game.</param>
         /// <param name="spriteBatch">A sprite batch object used for drawing sprites.</param>
@@ -60,9 +63,12 @@ namespace Engine
             if (!Visible)
                 return;
 
-            // draw the sprite at its *global* position in the game world
-            if (sprite != null)
-                sprite.Draw(spriteBatch, GlobalPosition - Camera.position, Origin);
+            // draw the sprite at its *global* position in the game world or with the camera offset in mind
+            if (sprite != null && BoundingBox.Intersects(Camera.rectangle) || UI)
+                if (UI)
+                    sprite.Draw(spriteBatch, GlobalPosition, Origin);
+                else
+                    sprite.Draw(spriteBatch, GlobalPosition - new Vector2(Camera.rectangle.X, Camera.rectangle.Y), Origin);
         }
 
         /// <summary>

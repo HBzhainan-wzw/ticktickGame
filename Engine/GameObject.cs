@@ -6,12 +6,12 @@ namespace Engine
     public class GameObject : IGameLoopObject
     {
         /// <summary>
-        /// The position of this game object, relative to its parent in the game-object hirachy.
+        /// The position of this game object, relative to its parent in the game-object hierachy.
         /// </summary>
         public Vector2 LocalPosition
         {
-            get => localPosition;
-            set => localPosition = value;
+            get { return localPosition; }
+            set { localPosition = value; }
         }
         protected Vector2 localPosition;
 

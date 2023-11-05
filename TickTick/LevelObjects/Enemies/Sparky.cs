@@ -13,14 +13,16 @@ class Sparky : AnimatedGameObject
     const float minTimer = 3, maxTimer = 5; // Range of possible times before the drops down.
     const float floatingHeight = 120; // The height at which Sparky floats above the ground.
     const float fallSpeed = 300, riseSpeed = 60; // The speed for falling and rising.
+    bool isAlive = true;
 
     public Sparky(Level level, Vector2 basePosition) : base(TickTick.Depth_LevelObjects)
     {
         this.level = level;
         this.basePosition = basePosition;
-
+        bool isAlive = true;
         LoadAnimation("Sprites/LevelObjects/Sparky/spr_electrocute@6x5", "electrocute", false, 0.1f);
         LoadAnimation("Sprites/LevelObjects/Sparky/spr_idle", "idle", true, 0.1f);
+        LoadAnimation("Sprites/LevelObjects/Player/spr_explode@5x5", "Bomb", false, 0.04f);
         Reset();
     }
 
@@ -28,7 +30,8 @@ class Sparky : AnimatedGameObject
     {
         // play the idle animation
         PlayAnimation("idle");
-        
+        isAlive = true;
+        Visible = true;
         // start by floating above the base position
         Origin = new Vector2(sprite.Width / 2, 135);
         localPosition = basePosition;
@@ -42,6 +45,19 @@ class Sparky : AnimatedGameObject
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+        if (!isAlive) {
+            // System.Diagnostics.Debug.WriteLine("Sparky Dead");
+            return;
+        }
+        
+        if (HasPixelPreciseCollision(level.Player.bullet)) 
+        {
+            Visible = false;
+            isAlive = false;
+            PlayAnimation("Bomb");
+            ExtendedGame.AssetManager.PlaySoundEffect("Sounds/snd_player_explode");
+            return;
+        }
 
         if (timeUntilDrop > 0)
         {
@@ -70,6 +86,8 @@ class Sparky : AnimatedGameObject
             // electrocute the player?
             if (IsDeadly && level.Player.CanCollideWithObjects && HasPixelPreciseCollision(level.Player))
                 level.Player.Die();
+
+
         }
     }
 

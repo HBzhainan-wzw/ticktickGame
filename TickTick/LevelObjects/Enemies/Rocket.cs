@@ -1,5 +1,7 @@
 ﻿using Engine;
 using Microsoft.Xna.Framework;
+using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 
 /// <summary>
 /// Represents a rocket enemy that flies horizontally through the screen.
@@ -9,8 +11,7 @@ class Rocket : AnimatedGameObject
     Level level;
     Vector2 startPosition;
     const float speed = 500;
-    private bool isActive = true;
-    private bool facingLeft = true;
+    bool isHit = true;
 
     public Rocket(Level level, Vector2 startPosition, bool facingLeft) 
         : base(TickTick.Depth_LevelObjects)
@@ -18,18 +19,11 @@ class Rocket : AnimatedGameObject
         this.level = level;
 
         LoadAnimation("Sprites/LevelObjects/Rocket/spr_rocket@3", "rocket", true, 0.1f);
+        LoadAnimation("Sprites/LevelObjects/Player/spr_explode@5x5", "Bomb", false, 0.04f);
         PlayAnimation("rocket");
         SetOriginToCenter();
-        this.startPosition = startPosition;
-        this.facingLeft = facingLeft;
-        this.isActive = true;
 
-        Reset();
-    }
-
-    public void setSpeed() {
-        // System.Diagnostics.Debug.WriteLine("Reset Speed");
-        sprite.Mirror = this.facingLeft;
+        sprite.Mirror = facingLeft;
         if (sprite.Mirror)
         {
             velocity.X = -speed;
@@ -40,66 +34,43 @@ class Rocket : AnimatedGameObject
             velocity.X = speed;
             this.startPosition = startPosition - new Vector2(2 * speed, 0);
         }
-        velocity.Y = 0;
+        Reset();
     }
 
     public override void Reset()
     {
-        // System.Diagnostics.Debug.WriteLine("Entered Reset");
-        if (this.isActive)
-        {
-            // go back to the starting position
-            setSpeed();
-            LocalPosition = startPosition;
-            // System.Diagnostics.Debug.WriteLine("Reset Active");
-        }
-        else {
-            // System.Diagnostics.Debug.WriteLine("Reset Inactive");
-            velocity.Y = 1000;
-        }
-
+        // go back to the starting position
+        LocalPosition = startPosition;
+        isHit = false;
+        PlayAnimation("rocket");
     }
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
-        if (!isActive) {
-            if (BoundingBox.Bottom > level.BoundingBox.Bottom) {
-                velocity.Y = 0;
-                velocity.X = 0;
-                LocalPosition = startPosition;
-            }
-        }
-            
-
         // if the rocket has left the screen, reset it
         if (sprite.Mirror && BoundingBox.Right < level.BoundingBox.Left)
-            Reset();
+            LocalPosition = startPosition;
         else if (!sprite.Mirror && BoundingBox.Left > level.BoundingBox.Right)
-            Reset();
+            LocalPosition = startPosition;
 
-        // if the rocket touches the player, the player dies
-        if (level.Player.CanCollideWithObjects && HasPixelPreciseCollision(level.Player))
-            //Check if player jumped on rocket
-            if (level.Player.GlobalPosition.Y + 15 < this.GlobalPosition.Y)
+        if (level.Player.CanCollideWithObjects && HasPixelPreciseCollision(level.Player) && !isHit)
+        {
+            if (level.Player.IsFalling && level.Player.GlobalPosition.Y < this.GlobalPosition.Y)
             {
-                isActive = false;
+                isHit = true;
+                PlayAnimation("Bomb");
+                ExtendedGame.AssetManager.PlaySoundEffect("Sounds/snd_player_explode");
+                level.Player.Jump(600, true);
 
-                //If player pressed jump then jump normally
-                if (level.Player.GettimeSinceLastAirborneJumpPress() < level.Player.GetjumpBufferTime())
-                {
-                    level.Player.Jump();
-                }
-                else //Little bounce if jump is not pressed
-                {
-                    level.Player.Jump(600f);
-                }
-                Reset();
             }
-            else //If hit somewhere else the player dies
+            // all other collision player dies
+            else
             {
                 level.Player.Die();
+                Reset();
             }
+        }
     }
 }
